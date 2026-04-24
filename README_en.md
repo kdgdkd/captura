@@ -4,13 +4,37 @@ A lightweight Python screenshot utility that runs in the system tray. Supports r
 
 ---
 
-## Requirements
+## Installation
+
+### 1. Create a project folder
+
+Create a folder on your machine where you want to keep the tool, for example:
+
+```bash
+mkdir captura
+cd captura
+```
+
+### 2. Download the files
+
+On this GitHub page, download `captura.py` by clicking the file and then the **Download raw file** button (download icon, top right of the code viewer). Save the file inside the folder you just created.
+
+Alternatively, clone the repository directly:
+
+```bash
+git clone https://github.com/your-user/your-repo.git captura
+cd captura
+```
+
+### 3. Prerequisites
 
 - Python 3.8+
 - PyQt6
 - keyboard
 
-Install dependencies:
+### 4. Install dependencies
+
+With your terminal inside the project folder:
 
 ```bash
 pip install PyQt6 keyboard
@@ -23,11 +47,17 @@ pip install PyQt6 keyboard
 
 ## Running
 
+From inside the project folder:
+
 ```bash
 python captura.py
 ```
 
-The app starts silently — no window appears. Look for the icon in the system tray. The app runs in the background until you quit it from the tray menu.
+The app starts silently — no window appears. Look for the icon in the system tray (a blue circle with an "S"). The app keeps running in the background until you quit it from the tray menu.
+
+### Optional: custom tray icon
+
+Place a file named `captura.ico` in the same directory as `captura.py`. If not found, a default blue icon is generated automatically.
 
 ---
 

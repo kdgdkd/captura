@@ -4,13 +4,37 @@ Utilidad ligera en Python que se ejecuta en la bandeja del sistema. Soporta sele
 
 ---
 
-## Requisitos
+## Instalación
+
+### 1. Crear la carpeta del proyecto
+
+Crea una carpeta en tu equipo donde quieras guardar la herramienta, por ejemplo:
+
+```bash
+mkdir captura
+cd captura
+```
+
+### 2. Descargar los ficheros
+
+En esta página de GitHub, descarga `captura.py` haciendo clic en el fichero y luego en el botón **Download raw file** (icono de descarga, arriba a la derecha del visor de código). Guarda el fichero dentro de la carpeta que acabas de crear.
+
+Si lo prefieres, puedes clonar el repositorio completo directamente:
+
+```bash
+git clone https://github.com/tu-usuario/tu-repo.git captura
+cd captura
+```
+
+### 3. Requisitos previos
 
 - Python 3.8+
 - PyQt6
 - keyboard
 
-Instalar dependencias:
+### 4. Instalar dependencias
+
+Con la terminal situada dentro de la carpeta del proyecto:
 
 ```bash
 pip install PyQt6 keyboard
@@ -22,6 +46,8 @@ pip install PyQt6 keyboard
 ---
 
 ## Ejecución
+
+Desde dentro de la carpeta del proyecto:
 
 ```bash
 python captura.py
