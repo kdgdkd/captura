@@ -1,5 +1,6 @@
 import sys
 import os
+import winreg
 from PyQt6.QtWidgets import (QApplication, QWidget, QMenu, QFileDialog, QSystemTrayIcon,
                              QHBoxLayout, QVBoxLayout, QPushButton, QDialog, QFormLayout,
                              QLineEdit, QComboBox, QSpinBox, QCheckBox, QLabel)
@@ -160,6 +161,11 @@ class SettingsDialog(QDialog):
         self.out_quality.setValue(int(self.settings.value("out_quality", 100)))
         form.addRow("Calidad JPG (1-100):", self.out_quality)
 
+        # Auto-Inicio
+        self.auto_start = QCheckBox()
+        self.auto_start.setChecked(self.is_auto_start_enabled())
+        form.addRow("Iniciar con Windows:", self.auto_start)
+
         # Lógica para deshabilitar calidad si es PNG
         self.out_format.currentTextChanged.connect(self.update_quality_state)
         self.update_quality_state(self.out_format.currentText())
@@ -195,7 +201,34 @@ class SettingsDialog(QDialog):
         self.settings.setValue("save_dir", self.save_dir.text())
         self.settings.setValue("out_format", self.out_format.currentText())
         self.settings.setValue("out_quality", self.out_quality.value())
+        self.set_auto_start(self.auto_start.isChecked())
         self.accept()
+
+    def get_run_key(self):
+        return r"Software\Microsoft\Windows\CurrentVersion\Run"
+
+    def is_auto_start_enabled(self):
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.get_run_key(), 0, winreg.KEY_READ) as key:
+                val, _ = winreg.QueryValueEx(key, "CapturaKdgdkd")
+                return True
+        except FileNotFoundError:
+            return False
+
+    def set_auto_start(self, enable):
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.get_run_key(), 0, winreg.KEY_ALL_ACCESS)
+            if enable:
+                exe_path = sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(sys.argv[0])
+                winreg.SetValueEx(key, "CapturaKdgdkd", 0, winreg.REG_SZ, f'"{exe_path}"')
+            else:
+                try:
+                    winreg.DeleteValue(key, "CapturaKdgdkd")
+                except FileNotFoundError:
+                    pass
+            winreg.CloseKey(key)
+        except Exception as e:
+            print(f"Error configurando auto-inicio: {e}")
 
 class SignalBridge(QObject):
     trigger_capture = pyqtSignal()
