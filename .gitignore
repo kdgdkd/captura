@@ -1,0 +1,22 @@
+# Build and distribution
+build/
+dist/
+*.spec
+
+# Virtual environment
+venv/
+.venv/
+env/
+ENV/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
