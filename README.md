@@ -94,6 +94,7 @@ Mantén pulsada una tecla modificadora **mientras arrastras** para restringir la
 |---|---|
 | `Ctrl` | Fuerza una selección cuadrada (1:1) |
 | `Shift` | Bloquea la relación de aspecto configurada (por defecto 16:9) |
+| `Alt` | Invierte la relación de aspecto (ej. pasa de 16:9 a 9:16) |
 
 Estos modificadores son configurables en Ajustes.
 
@@ -154,18 +155,20 @@ Accede desde el menú de bandeja → *Configuración*.
 |---|---|
 | **Atajo Captura Zona** | Atajo para la captura de zona. Haz clic en *Grabar* y pulsa la combinación deseada. |
 | **Atajo Pantalla Completa** | Atajo para la captura completa. Mismo método de grabación. |
-| **Modificador Cuadrado (1:1)** | Tecla modificadora para forzar selección cuadrada (`Control` / `Shift` / `Alt`). |
-| **Modificador Proporciones** | Tecla modificadora para bloquear la relación de aspecto. |
-| **Proporciones preferidas** | Relación de aspecto usada con el modificador proporcional (por defecto: 16:9). Introduce cualquier valor W:H. |
-| **Activar Lupa (Zoom)** | Activa o desactiva la lupa. |
+| **Forzar Cuadrado (1:1)** | Tecla modificadora para forzar selección cuadrada (`---`, `Ctrl`, `Shift`, `Alt`). |
+| **Forzar preferidas** | Tecla modificadora para bloquear la relación de aspecto. |
+| **Invertir preferidas** | Tecla modificadora para invertir la relación de aspecto bloqueada (ej. de Horizontal a Vertical). |
+| **Proporciones preferidas** | Relación de aspecto usada con el modificador proporcional (por defecto: 9:16). Introduce cualquier valor W:H. |
+| **Activar Lupa** | Activa o desactiva la lupa. |
 | **Mostrar Coordenadas** | Activa o desactiva las coordenadas X/Y sobre la lupa. |
 | **Carpeta Auto-Guardado** | Directorio para los ficheros guardados automáticamente. Haz clic en `...` para explorar. |
 | **Formato de salida** | `PNG` (sin pérdida) o `JPG`. |
 | **Calidad JPG (1-100)** | Calidad de compresión para la salida JPG. Se ignora para PNG. |
+| **Iniciar con Windows** | Añade la aplicación al registro de Windows para que se ejecute automáticamente al encender el equipo (solo Windows). |
 
 Haz clic en **Guardar** para aplicar. Los atajos se reregistran de inmediato — no hace falta reiniciar.
 
-La configuración se persiste mediante `QSettings` bajo la clave `MiEmpresa/Capturador` (ubicación según SO: registro en Windows, `~/.config` en Linux, `~/Library/Preferences` en macOS).
+La configuración se persiste mediante `QSettings` bajo la clave `kdgdkd/Captura` (ubicación según SO: registro en Windows, `~/.config` en Linux, `~/Library/Preferences` en macOS).
 
 ---
 
@@ -198,3 +201,4 @@ La carpeta destino se crea automáticamente si no existe.
 
 **El auto-guardado falla sin avisar**
 - Comprueba que el directorio de guardado configurado tenga permisos de escritura. La consola (si lanzaste desde un terminal) mostrará la ruta del error.
+

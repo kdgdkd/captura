@@ -92,8 +92,9 @@ Hold a modifier key **while dragging** to constrain the shape:
 
 | Modifier (default) | Effect |
 |---|---|
-| `Ctrl` | Forces a 1:1 square |
-| `Shift` | Locks to the configured aspect ratio (default 16:9) |
+| `Ctrl` | Forces a square selection (1:1) |
+| `Shift` | Locks the configured aspect ratio (default 16:9) |
+| `Alt` | Inverts the aspect ratio (e.g., changes from 16:9 to 9:16) |
 
 These modifiers are configurable in Settings.
 
@@ -152,20 +153,22 @@ Open via tray menu → *Configuración*.
 
 | Setting | Description |
 |---|---|
-| **Atajo Captura Zona** | Hotkey for region capture. Click *Grabar* and press the desired key combination. |
+| **Atajo Captura Zona** | Hotkey for zone capture. Click *Record* and press the desired combination. |
 | **Atajo Pantalla Completa** | Hotkey for full-screen capture. Same recording method. |
-| **Modificador Cuadrado (1:1)** | Modifier key to force a square selection (`Control` / `Shift` / `Alt`). |
-| **Modificador Proporciones** | Modifier key to lock the aspect ratio. |
-| **Proporciones preferidas** | Aspect ratio used with the proportional modifier (default: 16:9). Enter any W:H values. |
-| **Activar Lupa (Zoom)** | Enables or disables the magnifier lens. |
-| **Mostrar Coordenadas** | Enables or disables the X/Y coordinate display above the magnifier. |
-| **Carpeta Auto-Guardado** | Directory for auto-saved files. Click `...` to browse. |
+| **Forzar Cuadrado (1:1)** | Modifier key to force a square selection (`---`, `Ctrl`, `Shift`, `Alt`). |
+| **Forzar preferidas** | Modifier key to lock the aspect ratio. |
+| **Invertir preferidas** | Modifier key to invert the locked aspect ratio (e.g., from Landscape to Portrait). |
+| **Proporciones preferidas** | Aspect ratio used with the proportional modifier (default: 9:16). Enter any W:H value. |
+| **Activar Lupa** | Enables or disables the magnifier. |
+| **Mostrar Coordenadas** | Enables or disables X/Y coordinates above the magnifier. |
+| **Carpeta Auto-Guardado** | Directory for automatically saved files. Click `...` to browse. |
 | **Formato de salida** | `PNG` (lossless) or `JPG`. |
 | **Calidad JPG (1-100)** | Compression quality for JPG output. Ignored for PNG. |
+| **Iniciar con Windows** | Adds the application to the Windows registry to run automatically on startup (Windows only). |
 
-Click **Guardar** to apply. Hotkeys are re-registered immediately — no restart needed.
+Click **Save** to apply. Hotkeys are re-registered immediately — no restart required.
 
-Settings are persisted via `QSettings` under the key `MiEmpresa/Capturador` (location depends on OS: registry on Windows, `~/.config` on Linux, `~/Library/Preferences` on macOS).
+Settings are persisted using `QSettings` under the key `kdgdkd/Captura` (location varies by OS: registry on Windows, `~/.config` on Linux, `~/Library/Preferences` on macOS).
 
 ---
 
