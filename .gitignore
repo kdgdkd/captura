@@ -1,6 +1,6 @@
 # Build and distribution
 build/
-dist/
+# dist/
 *.spec
 
 # Virtual environment

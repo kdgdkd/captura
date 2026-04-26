@@ -137,6 +137,17 @@ class SettingsDialog(QDialog):
         self.zoom_enabled.setChecked(self.settings.value("zoom_enabled", True, type=bool))
         form.addRow("Activar Lupa:", self.zoom_enabled)
 
+        self.default_zoom = QSpinBox()
+        self.default_zoom.setRange(1, 20)
+        self.default_zoom.setValue(int(self.settings.value("default_zoom", 4)))
+        form.addRow("Zoom de lupa por defecto:", self.default_zoom)
+
+        self.default_mag_size = QSpinBox()
+        self.default_mag_size.setRange(60, 400)
+        self.default_mag_size.setSingleStep(10)
+        self.default_mag_size.setValue(int(self.settings.value("default_mag_size", 120)))
+        form.addRow("Tamaño de lupa por defecto:", self.default_mag_size)
+
         self.show_coords = QCheckBox()
         self.show_coords.setChecked(self.settings.value("show_coords", True, type=bool))
         form.addRow("Mostrar Coordenadas:", self.show_coords)
@@ -197,6 +208,8 @@ class SettingsDialog(QDialog):
         self.settings.setValue("prop_w", self.prop_w.value())
         self.settings.setValue("prop_h", self.prop_h.value())
         self.settings.setValue("zoom_enabled", self.zoom_enabled.isChecked())
+        self.settings.setValue("default_zoom", self.default_zoom.value())
+        self.settings.setValue("default_mag_size", self.default_mag_size.value())
         self.settings.setValue("show_coords", self.show_coords.isChecked())
         self.settings.setValue("save_dir", self.save_dir.text())
         self.settings.setValue("out_format", self.out_format.currentText())
@@ -253,6 +266,10 @@ class CaptureOverlay(QWidget):
         self.current_pos = QPoint()
         self.is_selecting = False
         self.selection_rect = QRect()
+        
+        settings = QSettings("kdgdkd", "Captura")
+        self.zoom = int(settings.value("default_zoom", 4))
+        self.mag_size = int(settings.value("default_mag_size", 120))
         
         self.mode = 'new_selection' 
         self.active_handle = None
@@ -331,14 +348,63 @@ class CaptureOverlay(QWidget):
                 if self.selection_rect.isNull() or handle is not None or not self.selection_rect.contains(self.current_pos):
                     show_lupa = True
 
+        if not self.selection_rect.isNull():
+            painter.drawPixmap(self.selection_rect, self.full_screenshot, 
+                               QRect(self.selection_rect.topLeft() * self.ratio, 
+                                     self.selection_rect.size() * self.ratio))
+            pen = QPen(QColor(255, 255, 255), 1)
+            painter.setPen(pen)
+            painter.drawRect(self.selection_rect)
+            
+            painter.setBrush(QColor("#0078d7"))
+            painter.setPen(QPen(Qt.GlobalColor.white, 1))
+            h_size = 8
+            pts = [self.selection_rect.topLeft(), self.selection_rect.topRight(), 
+                   self.selection_rect.bottomLeft(), self.selection_rect.bottomRight()]
+            for pt in pts:
+                painter.drawRect(pt.x() - h_size//2, pt.y() - h_size//2, h_size, h_size)
+
+            w_px = int(self.selection_rect.width() * self.ratio)
+            h_px = int(self.selection_rect.height() * self.ratio)
+            text = f"{w_px} × {h_px}"
+            
+            font = QFont("Arial", 8)
+            painter.setFont(font)
+            from PyQt6.QtGui import QFontMetrics
+            fm = QFontMetrics(font)
+            text_w = fm.horizontalAdvance(text)
+            text_h = fm.height()
+            
+            padding = 4
+            bg_w = text_w + padding * 2
+            bg_h = text_h + padding * 2
+            
+            x_pos = self.selection_rect.left()
+            if x_pos + bg_w > self.width():
+                x_pos = self.width() - bg_w
+                
+            y_pos = self.selection_rect.top() - bg_h - 4
+            if y_pos < 0:
+                y_pos = self.selection_rect.bottom() + 4
+                if y_pos + bg_h > self.height():
+                    y_pos = self.selection_rect.bottom() - bg_h - 4
+
+            bg_rect = QRect(x_pos, y_pos, bg_w, bg_h)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor(0, 0, 0, 180))
+            painter.drawRect(bg_rect)
+            
+            painter.setPen(QColor(255, 255, 255))
+            painter.drawText(bg_rect, Qt.AlignmentFlag.AlignCenter, text)
+
         if show_lupa and not self.current_pos.isNull():
             pen = QPen(QColor(255, 255, 255, 100), 1, Qt.PenStyle.SolidLine)
             painter.setPen(pen)
             painter.drawLine(0, self.current_pos.y(), self.width(), self.current_pos.y())
             painter.drawLine(self.current_pos.x(), 0, self.current_pos.x(), self.height())
 
-            mag_size = 120
-            zoom = 4
+            mag_size = self.mag_size
+            zoom = self.zoom
             offset = 40
             
             possible_points = [
@@ -411,55 +477,6 @@ class CaptureOverlay(QWidget):
             cross_size = 30
             painter.drawLine(center.x() - cross_size, center.y(), center.x() + cross_size, center.y())
             painter.drawLine(center.x(), center.y() - cross_size, center.x(), center.y() + cross_size)
-
-        if not self.selection_rect.isNull():
-            painter.drawPixmap(self.selection_rect, self.full_screenshot, 
-                               QRect(self.selection_rect.topLeft() * self.ratio, 
-                                     self.selection_rect.size() * self.ratio))
-            pen = QPen(QColor(255, 255, 255), 1)
-            painter.setPen(pen)
-            painter.drawRect(self.selection_rect)
-            
-            painter.setBrush(QColor("#0078d7"))
-            painter.setPen(QPen(Qt.GlobalColor.white, 1))
-            h_size = 8
-            pts = [self.selection_rect.topLeft(), self.selection_rect.topRight(), 
-                   self.selection_rect.bottomLeft(), self.selection_rect.bottomRight()]
-            for pt in pts:
-                painter.drawRect(pt.x() - h_size//2, pt.y() - h_size//2, h_size, h_size)
-
-            w_px = int(self.selection_rect.width() * self.ratio)
-            h_px = int(self.selection_rect.height() * self.ratio)
-            text = f"{w_px} × {h_px}"
-            
-            font = QFont("Arial", 8)
-            painter.setFont(font)
-            from PyQt6.QtGui import QFontMetrics
-            fm = QFontMetrics(font)
-            text_w = fm.horizontalAdvance(text)
-            text_h = fm.height()
-            
-            padding = 4
-            bg_w = text_w + padding * 2
-            bg_h = text_h + padding * 2
-            
-            x_pos = self.selection_rect.left()
-            if x_pos + bg_w > self.width():
-                x_pos = self.width() - bg_w
-                
-            y_pos = self.selection_rect.top() - bg_h - 4
-            if y_pos < 0:
-                y_pos = self.selection_rect.bottom() + 4
-                if y_pos + bg_h > self.height():
-                    y_pos = self.selection_rect.bottom() - bg_h - 4
-
-            bg_rect = QRect(x_pos, y_pos, bg_w, bg_h)
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QColor(0, 0, 0, 180))
-            painter.drawRect(bg_rect)
-            
-            painter.setPen(QColor(255, 255, 255))
-            painter.drawText(bg_rect, Qt.AlignmentFlag.AlignCenter, text)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -635,6 +652,22 @@ class CaptureOverlay(QWidget):
             self.active_handle = None
             self.resize_anchor = None
             self.update()
+
+    def wheelEvent(self, event):
+        angle = event.angleDelta().y()
+        modifiers = QApplication.keyboardModifiers()
+        
+        if modifiers & Qt.KeyboardModifier.ControlModifier:
+            if angle > 0:
+                self.mag_size = min(400, self.mag_size + 10)
+            elif angle < 0:
+                self.mag_size = max(60, self.mag_size - 10)
+        else:
+            if angle > 0:
+                self.zoom = min(20, self.zoom + 1)
+            elif angle < 0:
+                self.zoom = max(1, self.zoom - 1)
+        self.update()
 
     def keyPressEvent(self, event):
         key = event.key()

@@ -6,7 +6,19 @@ Utilidad ligera en Python que se ejecuta en la bandeja del sistema. Soporta sele
 
 ## Instalación
 
-### 1. Crear la carpeta del proyecto
+### Opción 1: Ejecutable (Recomendado para Windows)
+
+La forma más sencilla y rápida de utilizar la herramienta en Windows es usando el archivo precompilado:
+
+1. Descarga el archivo `captura.exe` (puedes encontrarlo en la carpeta `dist` si lo has compilado, o en las releases del repositorio).
+2. Opcionalmente, descarga el archivo `captura.ico` y colócalo en la misma carpeta que el ejecutable para tener el icono original.
+3. Haz doble clic en `captura.exe` para iniciar la aplicación. ¡No necesitas instalar Python ni ninguna otra dependencia!
+
+### Opción 2: Ejecutar desde el código fuente (Python / Multiplataforma)
+
+Si prefieres ejecutar el script directamente o estás en otro sistema operativo (Linux, macOS), sigue estos pasos:
+
+#### 1. Crear la carpeta del proyecto
 
 Crea una carpeta en tu equipo donde quieras guardar la herramienta, por ejemplo:
 
@@ -15,7 +27,7 @@ mkdir captura
 cd captura
 ```
 
-### 2. Descargar los ficheros
+#### 2. Descargar los ficheros
 
 En esta página de GitHub, descarga `captura.py` haciendo clic en el fichero y luego en el botón **Download raw file** (icono de descarga, arriba a la derecha del visor de código). Guarda el fichero dentro de la carpeta que acabas de crear.
 
@@ -26,13 +38,13 @@ git clone https://github.com/tu-usuario/tu-repo.git captura
 cd captura
 ```
 
-### 3. Requisitos previos
+#### 3. Requisitos previos
 
 - Python 3.8+
 - PyQt6
 - keyboard
 
-### 4. Instalar dependencias
+#### 4. Instalar dependencias
 
 Con la terminal situada dentro de la carpeta del proyecto:
 
@@ -125,11 +137,14 @@ Tras cualquier acción (Copiar, Auto, Guardar), el overlay se cierra automática
 
 ## Lupa (Zoom)
 
-Mientras el overlay está abierto y estás seleccionando o pasando el cursor cerca del borde de una selección, aparece una lupa circular (zoom 4×) cerca del cursor. Muestra una cruz en su centro para un posicionamiento preciso a nivel de píxel.
+Mientras el overlay está abierto y estás seleccionando o pasando el cursor cerca del borde de una selección, aparece una lupa circular cerca del cursor. Muestra una cruz en su centro para un posicionamiento preciso a nivel de píxel.
 
 - Las coordenadas (`X: … Y: …`) se muestran encima de la lupa.
 - La lupa se reposiciona automáticamente para no solaparse con la selección.
-- Tanto la lupa como las coordenadas se pueden desactivar en Configuración.
+- **Ajuste de Zoom:** Gira la **rueda del ratón** para aumentar o reducir el nivel de zoom de la imagen dentro de la lupa (entre 1x y 20x).
+- **Ajuste de Tamaño:** Gira la **rueda del ratón manteniendo pulsada la tecla `Ctrl`** para aumentar o reducir el diámetro de la lupa (entre 60px y 400px).
+- Los ajustes de zoom y tamaño que realices durante una captura se mantendrán hasta que la cierres. Los valores por defecto se pueden definir en Configuración.
+- Tanto la lupa como las coordenadas se pueden desactivar por completo en Configuración.
 
 ---
 
@@ -160,6 +175,8 @@ Accede desde el menú de bandeja → *Configuración*.
 | **Invertir preferidas** | Tecla modificadora para invertir la relación de aspecto bloqueada (ej. de Horizontal a Vertical). |
 | **Proporciones preferidas** | Relación de aspecto usada con el modificador proporcional (por defecto: 9:16). Introduce cualquier valor W:H. |
 | **Activar Lupa** | Activa o desactiva la lupa. |
+| **Zoom de lupa por defecto** | Nivel de aumento inicial para la lupa (1x - 20x). |
+| **Tamaño de lupa por defecto** | Diámetro inicial en píxeles de la lupa (60px - 400px). |
 | **Mostrar Coordenadas** | Activa o desactiva las coordenadas X/Y sobre la lupa. |
 | **Carpeta Auto-Guardado** | Directorio para los ficheros guardados automáticamente. Haz clic en `...` para explorar. |
 | **Formato de salida** | `PNG` (sin pérdida) o `JPG`. |

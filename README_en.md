@@ -6,7 +6,19 @@ A lightweight Python screenshot utility that runs in the system tray. Supports r
 
 ## Installation
 
-### 1. Create a project folder
+### Option 1: Standalone Executable (Recommended for Windows)
+
+The simplest and fastest way to use the tool on Windows is to download the pre-compiled executable:
+
+1. Download the `captura.exe` file (you can find it in the `dist` folder if you compiled it, or in the repository's releases).
+2. Optionally, download the `captura.ico` file and place it in the same folder as the executable to have the original tray icon.
+3. Double-click `captura.exe` to launch the application. No Python installation or dependencies are required!
+
+### Option 2: Run from Source Code (Python / Cross-platform)
+
+If you prefer to run the script directly or you are using another operating system (Linux, macOS), follow these steps:
+
+#### 1. Create a project folder
 
 Create a folder on your machine where you want to keep the tool, for example:
 
@@ -15,7 +27,7 @@ mkdir captura
 cd captura
 ```
 
-### 2. Download the files
+#### 2. Download the files
 
 On this GitHub page, download `captura.py` by clicking the file and then the **Download raw file** button (download icon, top right of the code viewer). Save the file inside the folder you just created.
 
@@ -26,13 +38,13 @@ git clone https://github.com/your-user/your-repo.git captura
 cd captura
 ```
 
-### 3. Prerequisites
+#### 3. Prerequisites
 
 - Python 3.8+
 - PyQt6
 - keyboard
 
-### 4. Install dependencies
+#### 4. Install dependencies
 
 With your terminal inside the project folder:
 
@@ -125,11 +137,14 @@ After any action (Copy, Auto, Save), the overlay closes automatically.
 
 ## Magnifier (Zoom)
 
-While the overlay is open and you are selecting or hovering near a selection edge, a circular magnifier lens (4× zoom) appears near the cursor. It shows a crosshair at its center for precise pixel-level positioning.
+While the overlay is open and you are selecting or hovering near a selection edge, a circular magnifier lens appears near the cursor. It shows a crosshair at its center for precise pixel-level positioning.
 
 - Coordinates (`X: … Y: …`) are displayed above the magnifier.
 - The magnifier repositions automatically to avoid overlapping the selection.
-- Both the magnifier and coordinates can be disabled in Settings.
+- **Adjust Zoom:** Scroll the **mouse wheel** to increase or decrease the zoom level of the image inside the magnifier (between 1x and 20x).
+- **Adjust Size:** Scroll the **mouse wheel while holding the `Ctrl` key** to increase or decrease the diameter of the magnifier (between 60px and 400px).
+- Any zoom or size adjustments made during a capture will persist until you close it. Default values can be set in the Settings.
+- Both the magnifier and coordinates can be completely disabled in Settings.
 
 ---
 
@@ -160,6 +175,8 @@ Open via tray menu → *Configuración*.
 | **Invertir preferidas** | Modifier key to invert the locked aspect ratio (e.g., from Landscape to Portrait). |
 | **Proporciones preferidas** | Aspect ratio used with the proportional modifier (default: 9:16). Enter any W:H value. |
 | **Activar Lupa** | Enables or disables the magnifier. |
+| **Zoom de lupa por defecto** | Default zoom level for the magnifier (1x - 20x). |
+| **Tamaño de lupa por defecto** | Default diameter in pixels for the magnifier (60px - 400px). |
 | **Mostrar Coordenadas** | Enables or disables X/Y coordinates above the magnifier. |
 | **Carpeta Auto-Guardado** | Directory for automatically saved files. Click `...` to browse. |
 | **Formato de salida** | `PNG` (lossless) or `JPG`. |
