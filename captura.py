@@ -1,12 +1,27 @@
 import sys
 import os
 import winreg
+import tempfile
+import subprocess  
+from PyQt6.QtSvg import QSvgRenderer
 from PyQt6.QtWidgets import (QApplication, QWidget, QMenu, QFileDialog, QSystemTrayIcon,
                              QHBoxLayout, QVBoxLayout, QPushButton, QDialog, QFormLayout,
-                             QLineEdit, QComboBox, QSpinBox, QCheckBox, QLabel)
+                             QLineEdit, QComboBox, QSpinBox, QCheckBox, QLabel, QGroupBox,
+                             QScrollArea) 
 from PyQt6.QtGui import QPainter, QColor, QPen, QPixmap, QCursor, QIcon, QFont, QPainterPath
-from PyQt6.QtCore import Qt, QRect, QPoint, pyqtSignal, QObject, QTimer, QSettings
+from PyQt6.QtCore import Qt, QRect, QPoint, pyqtSignal, QObject, QTimer, QSettings, QSize
 import keyboard
+
+# Iconos SVG para los botones de la barra de captura
+ICON_AUTO = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M128,189.09l54.72,33.65a8.4,8.4,0,0,0,12.52-9.17l-14.88-62.79,48.7-42A8.46,8.46,0,0,0,224.27,94L160.36,88.8,135.74,29.2a8.36,8.36,0,0,0-15.48,0L95.64,88.8,31.73,94a8.46,8.46,0,0,0-4.79,14.83l48.7,42L60.76,213.57a8.4,8.4,0,0,0,12.52,9.17Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg>'''
+
+ICON_COPY = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><rect x="40" y="72" width="144" height="144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/><polyline points="72 40 216 40 216 184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg>'''
+
+ICON_SAVE = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><line x1="128" y1="144" x2="128" y2="32" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/><polyline points="216 144 216 208 40 208 40 144" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/><polyline points="168 104 128 144 88 104" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg>'''
+
+ICON_OPEN = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M92.69,216H48a8,8,0,0,1-8-8V163.31a8,8,0,0,1,2.34-5.65L165.66,34.34a8,8,0,0,1,11.31,0L221.66,79a8,8,0,0,1,0,11.31L98.34,213.66A8,8,0,0,1,92.69,216Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/><line x1="136" y1="64" x2="192" y2="120" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/><line x1="164" y1="92" x2="68" y2="188" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/><line x1="95.49" y1="215.49" x2="40.51" y2="160.51" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg>'''
+
+ICON_CANCEL = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><line x1="200" y1="56" x2="56" y2="200" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/><line x1="200" y1="200" x2="56" y2="56" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"/></svg>'''
 
 class HotkeyRecorder(QWidget):
     key_signal = pyqtSignal(str)
@@ -24,6 +39,7 @@ class HotkeyRecorder(QWidget):
         self.line_edit.setReadOnly(True)
         self.btn = QPushButton("Grabar")
         self.btn.setFixedWidth(80)
+        self.btn.setFocusPolicy(Qt.FocusPolicy.NoFocus) 
         self.btn.clicked.connect(self.toggle_recording)
         layout.addWidget(self.line_edit)
         layout.addWidget(self.btn)
@@ -93,33 +109,118 @@ class SettingsDialog(QDialog):
         self.settings = QSettings("kdgdkd", "Captura")
         self.init_ui()
 
-    def init_ui(self):
-        layout = QVBoxLayout(self)
-        form = QFormLayout()
 
-        # Atajos con grabador
+    def check_modifier_conflicts(self):
+        """Verifica si hay conflictos entre modificadores y actualiza la UI"""
+        # Lista de todos los combos de modificadores
+        mod_combos = [
+            (self.mod_lock, "Bloquear proporción"),
+            (self.mod_prop, "Forzar preferidas"),
+            (self.mod_inv_prop, "Invertir preferidas")
+        ]
+        
+        
+        # Reiniciar todos los combos
+        for combo, _ in mod_combos:
+            combo.setStyleSheet("")
+            combo.setToolTip("")
+            # Restaurar todos los items
+            for i in range(combo.count()):
+                combo.model().item(i).setEnabled(True)
+        
+        # Verificar conflictos
+        used_mods = {}
+        for combo, name in mod_combos:
+            mod = combo.currentText()
+            if mod != "---":
+                if mod in used_mods:
+                    # Conflicto encontrado
+                    conflicted_combo = used_mods[mod]
+                    # Marcar ambos combos como conflictivos
+                    combo.setStyleSheet("""
+                        QComboBox {
+                            color: #ff6b6b;
+                            border: 1px solid #ff6b6b;
+                            background-color: #3a2020;
+                        }
+                        QComboBox QAbstractItemView {
+                            color: #ff6b6b;
+                        }
+                    """)
+                    combo.setToolTip(f"¡Conflicto! El modificador '{mod}' ya está asignado a '{conflicted_combo}'")
+                    
+                    conflicted_combo.setStyleSheet("""
+                        QComboBox {
+                            color: #ff6b6b;
+                            border: 1px solid #ff6b6b;
+                            background-color: #3a2020;
+                        }
+                        QComboBox QAbstractItemView {
+                            color: #ff6b6b;
+                        }
+                    """)
+                    conflicted_combo.setToolTip(f"¡Conflicto! El modificador '{mod}' también está asignado a '{name}'")
+                else:
+                    used_mods[mod] = combo
+        
+        # Deshabilitar modificadores ya usados en otros combos
+        for combo, _ in mod_combos:
+            current_mod = combo.currentText()
+            for other_combo, _ in mod_combos:
+                if other_combo != combo:
+                    other_mod = other_combo.currentText()
+                    if other_mod != "---" and other_mod != current_mod:
+                        # Deshabilitar el modificador usado en el otro combo
+                        for i in range(combo.count()):
+                            if combo.itemText(i) == other_mod:
+                                combo.model().item(i).setEnabled(False)
+
+    def init_ui(self):
+        self.resize(480, 550)
+        
+        # Layout principal de la ventana
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+
+        # --- ÁREA DE SCROLL ---
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setStyleSheet("QScrollArea { border: none; }")
+        
+        # Contenedor interno que irá dentro del scroll
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(8) # Espaciado más compacto entre secciones
+
+        # ==========================================
+        # SUBSECCIÓN 1: Atajos y Proporciones
+        # ==========================================
+        group_shortcuts = QGroupBox("Atajos")
+        form_shortcuts = QFormLayout(group_shortcuts)
+        form_shortcuts.setContentsMargins(10, 15, 10, 10)
+        form_shortcuts.setVerticalSpacing(4) # Más compacto
+
         self.hk_zone = HotkeyRecorder(self.settings.value("hotkey_zone", "print screen"))
         self.hk_full = HotkeyRecorder(self.settings.value("hotkey_full", "shift+print screen"))
-        form.addRow("Capturar Zona:", self.hk_zone)
-        form.addRow("Capturar Pantalla:", self.hk_full)
+        form_shortcuts.addRow("Capturar Zona:", self.hk_zone)
+        form_shortcuts.addRow("Capturar Pantalla:", self.hk_full)
 
-        # Modificadores
-        self.mod_square = QComboBox()
-        self.mod_square.addItems(["---", "Ctrl", "Shift", "Alt"])
-        self.mod_square.setCurrentText(self.settings.value("mod_square", "Ctrl"))
-        form.addRow("Forzar Cuadrado (1:1):", self.mod_square)
+        self.mod_lock = QComboBox()
+        self.mod_lock.addItems(["---", "Ctrl", "Shift", "Alt"])
+        self.mod_lock.setCurrentText(self.settings.value("mod_lock", "Ctrl"))
+        form_shortcuts.addRow("Bloquear proporción:", self.mod_lock)
 
         self.mod_prop = QComboBox()
         self.mod_prop.addItems(["---", "Ctrl", "Shift", "Alt"])
         self.mod_prop.setCurrentText(self.settings.value("mod_prop", "Shift"))
-        form.addRow("Forzar preferidas:", self.mod_prop)
+        form_shortcuts.addRow("Forzar preferidas:", self.mod_prop)
 
         self.mod_inv_prop = QComboBox()
         self.mod_inv_prop.addItems(["---", "Ctrl", "Shift", "Alt"])
         self.mod_inv_prop.setCurrentText(self.settings.value("mod_inv_prop", "Alt"))
-        form.addRow("Invertir preferidas:", self.mod_inv_prop)
+        form_shortcuts.addRow("Invertir preferidas:", self.mod_inv_prop)
 
-        # Proporciones
         prop_layout = QHBoxLayout()
         self.prop_w = QSpinBox()
         self.prop_w.setRange(1, 9999)
@@ -130,66 +231,134 @@ class SettingsDialog(QDialog):
         prop_layout.addWidget(self.prop_w)
         prop_layout.addWidget(QLabel(":"))
         prop_layout.addWidget(self.prop_h)
-        form.addRow("Proporciones preferidas:", prop_layout)
+        form_shortcuts.addRow("Proporciones preferidas:", prop_layout)
+        
+        # Conectar eventos para detectar conflictos de modificadores
+        self.mod_lock.currentTextChanged.connect(self.check_modifier_conflicts)
+        self.mod_prop.currentTextChanged.connect(self.check_modifier_conflicts)
+        self.mod_inv_prop.currentTextChanged.connect(self.check_modifier_conflicts)
+        
+        layout.addWidget(group_shortcuts)
 
-        # Zoom y Coordenadas
+        # ==========================================
+        # SUBSECCIÓN 2: Lupa y Coordenadas
+        # ==========================================
+        group_magnifier = QGroupBox("Lupa")
+        form_magnifier = QFormLayout(group_magnifier)
+        form_magnifier.setContentsMargins(10, 15, 10, 10)
+        form_magnifier.setVerticalSpacing(4)
+
         self.zoom_enabled = QCheckBox()
         self.zoom_enabled.setChecked(self.settings.value("zoom_enabled", True, type=bool))
-        form.addRow("Activar Lupa:", self.zoom_enabled)
+        form_magnifier.addRow("Activar Lupa:", self.zoom_enabled)
 
         self.default_zoom = QSpinBox()
         self.default_zoom.setRange(1, 20)
         self.default_zoom.setValue(int(self.settings.value("default_zoom", 4)))
-        form.addRow("Zoom de lupa por defecto:", self.default_zoom)
+        form_magnifier.addRow("Zoom:", self.default_zoom)
 
         self.default_mag_size = QSpinBox()
         self.default_mag_size.setRange(60, 400)
         self.default_mag_size.setSingleStep(10)
         self.default_mag_size.setValue(int(self.settings.value("default_mag_size", 120)))
-        form.addRow("Tamaño de lupa por defecto:", self.default_mag_size)
+        form_magnifier.addRow("Tamaño:", self.default_mag_size)
 
         self.show_coords = QCheckBox()
         self.show_coords.setChecked(self.settings.value("show_coords", True, type=bool))
-        form.addRow("Mostrar Coordenadas:", self.show_coords)
+        form_magnifier.addRow("Mostrar coordenadas:", self.show_coords)
+        
+        layout.addWidget(group_magnifier)
 
-        # Ubicación
+        # ==========================================
+        # SUBSECCIÓN 3: Auto
+        # ==========================================
+        group_auto = QGroupBox("Auto")
+        form_auto = QFormLayout(group_auto)
+        form_auto.setContentsMargins(10, 15, 10, 10)
+        form_auto.setVerticalSpacing(4)
+
+        self.auto_action = QComboBox()
+        self.auto_action.addItems(["Guardar", "Abrir", "Copiar", "---"])
+        self.auto_action.setCurrentText(self.settings.value("auto_action", "Guardar"))
+        form_auto.addRow("Acción 'Auto':", self.auto_action)
+
         loc_layout = QHBoxLayout()
         self.save_dir = QLineEdit(self.settings.value("save_dir", os.path.expanduser('~')))
-        btn_browse = QPushButton("...")
-        btn_browse.clicked.connect(self.browse_dir)
+        self.btn_browse = QPushButton("...")
+        self.btn_browse.clicked.connect(self.browse_dir)
         loc_layout.addWidget(self.save_dir)
-        loc_layout.addWidget(btn_browse)
-        form.addRow("Carpeta Auto-Guardado:", loc_layout)
+        loc_layout.addWidget(self.btn_browse)
+        form_auto.addRow("Guardar en:", loc_layout)
 
-        # Formato y calidad
+        editor_layout = QHBoxLayout()
+        self.editor_path = QLineEdit(self.settings.value("editor_path", ""))
+        self.editor_path.setPlaceholderText("Ruta de editor (.exe) o URL (https://...)")
+        self.btn_editor_browse = QPushButton("...")
+        self.btn_editor_browse.clicked.connect(self.browse_editor)
+        self.btn_paste_url = QPushButton("📋")
+        self.btn_paste_url.setFixedWidth(30)
+        self.btn_paste_url.setToolTip("Pegar URL del portapapeles")
+        self.btn_paste_url.clicked.connect(self.paste_url)
+        editor_layout.addWidget(self.editor_path)
+        editor_layout.addWidget(self.btn_paste_url)
+        editor_layout.addWidget(self.btn_editor_browse)
+        form_auto.addRow("Abrir con:", editor_layout)
+
+        # Lógica de activación/desactivación para Auto
+        self.auto_action.currentTextChanged.connect(self.update_auto_state)
+        self.update_auto_state(self.auto_action.currentText())
+
+        layout.addWidget(group_auto)
+
+        # ==========================================
+        # SUBSECCIÓN 4: General
+        # ==========================================
+        group_general = QGroupBox("General")
+        form_general = QFormLayout(group_general)
+        form_general.setContentsMargins(10, 15, 10, 10)
+        form_general.setVerticalSpacing(4)
+
+        self.auto_start = QCheckBox()
+        self.auto_start.setChecked(self.is_auto_start_enabled())
+        form_general.addRow("Iniciar con Windows:", self.auto_start)
+
         self.out_format = QComboBox()
         self.out_format.addItems(["PNG", "JPG"])
         self.out_format.setCurrentText(self.settings.value("out_format", "PNG"))
-        form.addRow("Formato de salida:", self.out_format)
+        form_general.addRow("Formato de salida:", self.out_format)
 
         self.out_quality = QSpinBox()
         self.out_quality.setRange(1, 100)
         self.out_quality.setValue(int(self.settings.value("out_quality", 100)))
-        form.addRow("Calidad JPG (1-100):", self.out_quality)
+        form_general.addRow("Calidad JPG:", self.out_quality)
 
-        # Auto-Inicio
-        self.auto_start = QCheckBox()
-        self.auto_start.setChecked(self.is_auto_start_enabled())
-        form.addRow("Iniciar con Windows:", self.auto_start)
-
-        # Lógica para deshabilitar calidad si es PNG
+        # Lógica de activación/desactivación para calidad JPG
         self.out_format.currentTextChanged.connect(self.update_quality_state)
         self.update_quality_state(self.out_format.currentText())
 
-        layout.addLayout(form)
+        layout.addWidget(group_general)
 
-        # Botones
+        # ==========================================
+        # ENSAMBLAJE FINAL
+        # ==========================================
+        # Añadimos el contenedor al scroll
+        scroll_area.setWidget(container)
+        
+        # Añadimos el scroll al layout principal
+        main_layout.addWidget(scroll_area)
+
+        # Botón Guardar (Queda FUERA del scroll, siempre visible abajo)
         btn_layout = QHBoxLayout()
         btn_save = QPushButton("Guardar")
+        btn_save.setMinimumWidth(100)
         btn_save.clicked.connect(self.save_settings)
         btn_layout.addStretch()
         btn_layout.addWidget(btn_save)
-        layout.addLayout(btn_layout)
+        
+        main_layout.addLayout(btn_layout)
+        
+        # Verificar conflictos iniciales
+        self.check_modifier_conflicts()
 
     def update_quality_state(self, fmt):
         self.out_quality.setEnabled(fmt == "JPG")
@@ -199,10 +368,86 @@ class SettingsDialog(QDialog):
         if dir_path:
             self.save_dir.setText(dir_path)
 
+
+
+
+    def browse_editor(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Seleccionar editor o URL", "", 
+                                               "Ejecutables (*.exe);;Todos los archivos (*.*)")
+        if path:
+            self.editor_path.setText(path)
+
+    def paste_url(self):
+        clipboard = QApplication.clipboard()
+        text = clipboard.text().strip()
+        if text:
+            from urllib.parse import urlparse
+            parsed = urlparse(text)
+            if parsed.scheme in ('http', 'https', 'ftp'):
+                self.editor_path.setText(text)
+            else:
+                from PyQt6.QtWidgets import QMessageBox
+                QMessageBox.information(
+                    self,
+                    "No es una URL",
+                    "El texto del portapapeles no parece ser una URL válida.",
+                    QMessageBox.StandardButton.Ok
+                )
+
+    def update_auto_state(self, action):
+        is_guardar = (action == "Guardar")
+        self.save_dir.setEnabled(is_guardar)
+        self.btn_browse.setEnabled(is_guardar)
+        
+        is_abrir = (action == "Abrir")
+        self.editor_path.setEnabled(is_abrir)
+        self.btn_editor_browse.setEnabled(is_abrir)
+
     def save_settings(self):
+        # Verificar conflictos antes de guardar
+        mods = {
+            self.mod_lock.currentText(): "Bloquear proporción",
+            self.mod_prop.currentText(): "Forzar preferidas", 
+            self.mod_inv_prop.currentText(): "Invertir preferidas"
+        }
+        
+        # Eliminar "---" del diccionario
+        mods = {k: v for k, v in mods.items() if k != "---"}
+        
+        if len(mods) != len(set(mods.keys())):
+            # Hay modificadores duplicados
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(
+                self, 
+                "Conflicto de modificadores",
+                "Hay modificadores asignados a múltiples funciones.\n"
+                "Por favor, asigna modificadores diferentes o usa '---' para desactivarlos.",
+                QMessageBox.StandardButton.Ok
+            )
+            return
+        
+        # Validar editor_path
+        editor_path = self.editor_path.text().strip()
+        if editor_path:
+            from urllib.parse import urlparse
+            parsed = urlparse(editor_path)
+            is_url = parsed.scheme in ('http', 'https', 'ftp')
+            is_valid_path = os.path.exists(editor_path) or os.path.isabs(editor_path)
+            
+            if not (is_url or is_valid_path):
+                from PyQt6.QtWidgets import QMessageBox
+                QMessageBox.warning(
+                    self,
+                    "Ruta no válida",
+                    f"'{editor_path}' no es una ruta válida ni una URL.\n"
+                    "Por favor, introduce una ruta de archivo existente o una URL válida.",
+                    QMessageBox.StandardButton.Ok
+                )
+                return
+        
         self.settings.setValue("hotkey_zone", self.hk_zone.text())
         self.settings.setValue("hotkey_full", self.hk_full.text())
-        self.settings.setValue("mod_square", self.mod_square.currentText())
+        self.settings.setValue("mod_lock", self.mod_lock.currentText())
         self.settings.setValue("mod_prop", self.mod_prop.currentText())
         self.settings.setValue("mod_inv_prop", self.mod_inv_prop.currentText())
         self.settings.setValue("prop_w", self.prop_w.value())
@@ -211,6 +456,8 @@ class SettingsDialog(QDialog):
         self.settings.setValue("default_zoom", self.default_zoom.value())
         self.settings.setValue("default_mag_size", self.default_mag_size.value())
         self.settings.setValue("show_coords", self.show_coords.isChecked())
+        self.settings.setValue("auto_action", self.auto_action.currentText())
+        self.settings.setValue("editor_path", editor_path)
         self.settings.setValue("save_dir", self.save_dir.text())
         self.settings.setValue("out_format", self.out_format.currentText())
         self.settings.setValue("out_quality", self.out_quality.value())
@@ -248,6 +495,21 @@ class SignalBridge(QObject):
     trigger_full = pyqtSignal()
 
 class CaptureOverlay(QWidget):
+
+    FEEDBACK_STYLE = """
+        QPushButton { 
+            min-width: 30px;
+            min-height: 30px;
+            max-width: 30px;
+            max-height: 30px;
+            padding: 4px;
+            background-color: #e0e0e0; 
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+        }
+    """
+
+
     def __init__(self, full_screenshot):
         super().__init__()
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -260,6 +522,9 @@ class CaptureOverlay(QWidget):
         self.setWindowState(Qt.WindowState.WindowFullScreen)
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.activateWindow()
+        self.raise_()
+        self.proporcion_cache = {}
         
         self.begin = QPoint()
         self.end = QPoint()
@@ -270,7 +535,23 @@ class CaptureOverlay(QWidget):
         settings = QSettings("kdgdkd", "Captura")
         self.zoom = int(settings.value("default_zoom", 4))
         self.mag_size = int(settings.value("default_mag_size", 120))
-        
+
+        # Definir proporciones estándar
+        self.proporciones_estandar = [
+            (1, 1),   # Cuadrado
+            (4, 3),   # Tradicional
+            (3, 2),   # Fotografía
+            (16, 9),  # Widescreen
+            (16, 10), # Monitores
+            (21, 9),  # Ultrawide
+            (9, 16),  # Vertical
+            (3, 1),   # Panorámico
+            (1, 3),   # Vertical extremo
+            (5, 4),   # Formato antiguo
+            (3, 4),   # Vertical tradicional
+            (2, 3),   # Vertical fotografía
+        ]
+
         self.mode = 'new_selection' 
         self.active_handle = None
         self.drag_offset = QPoint()
@@ -278,39 +559,216 @@ class CaptureOverlay(QWidget):
         
         self.panel = QWidget(self)
         self.panel.setStyleSheet("""
-            QWidget { background-color: #2b2b2b; border: 1px solid #1a1a1a; border-radius: 4px; }
-            QPushButton { 
-                min-width: 70px;
-                padding: 4px 2px; 
-                border: 1px solid #444444; 
-                background-color: #404040; 
-                color: #eeeeee; 
-                font-size: 11px; 
-                font-weight: bold; 
-                border-radius: 2px;
+            QWidget { 
+                background-color: #2b2b2b; 
+                border: 1px solid #1a1a1a; 
+                border-radius: 6px; 
             }
-            QPushButton:hover { background-color: #0078d7; color: #ffffff; border: 1px solid #005a9e; }
+            QPushButton { 
+                min-width: 30px;
+                min-height: 30px;
+                max-width: 30px;
+                max-height: 30px;
+                padding: 4px; 
+                border: 1px solid #555555; 
+                background-color: #3a3a3a; 
+                border-radius: 4px;
+                color: #ffffff;
+            }
+            QPushButton:hover { 
+                background-color: #e0e0e0; 
+                border: 1px solid #cccccc;
+                color: #1a1a1a;
+            }
+            QPushButton:pressed { 
+                background-color: #c0c0c0; 
+                border: 1px solid #aaaaaa;
+                color: #1a1a1a;
+            }
         """)
+        
         layout = QHBoxLayout(self.panel)
-        layout.setContentsMargins(4, 4, 4, 4)
-        layout.setSpacing(4)
+        layout.setContentsMargins(6, 6, 6, 6)
+        layout.setSpacing(6)
         
-        self.btn_copy = QPushButton("Copiar")
-        self.btn_auto = QPushButton("Auto")
-        self.btn_save = QPushButton("Guardar...")
-        self.btn_cancel = QPushButton("Cancelar")
+        icon_size = 18
+
+        # Iconos para estado normal (blanco sobre fondo oscuro)
+        self.icon_auto_light = self.create_svg_icon(ICON_AUTO, "#ffffff", icon_size)
+        self.icon_copy_light = self.create_svg_icon(ICON_COPY, "#ffffff", icon_size)
+        self.icon_save_light = self.create_svg_icon(ICON_SAVE, "#ffffff", icon_size)
+        self.icon_open_light = self.create_svg_icon(ICON_OPEN, "#ffffff", icon_size)
+        self.icon_cancel_light = self.create_svg_icon(ICON_CANCEL, "#ffffff", icon_size)
+
+        # Iconos para estado hover (oscuro sobre fondo claro)
+        self.icon_auto_dark = self.create_svg_icon(ICON_AUTO, "#1a1a1a", icon_size)
+        self.icon_copy_dark = self.create_svg_icon(ICON_COPY, "#1a1a1a", icon_size)
+        self.icon_save_dark = self.create_svg_icon(ICON_SAVE, "#1a1a1a", icon_size)
+        self.icon_open_dark = self.create_svg_icon(ICON_OPEN, "#1a1a1a", icon_size)
+        self.icon_cancel_dark = self.create_svg_icon(ICON_CANCEL, "#1a1a1a", icon_size)
+
+
+        self.btn_auto = QPushButton()
+        self.install_icon_swap(self.btn_auto, self.icon_auto_light, self.icon_auto_dark)
+        self.btn_auto.setIconSize(QSize(icon_size, icon_size))
+        self.btn_auto.setToolTip("Auto")
+        self.btn_auto.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        self.btn_copy = QPushButton()
+        self.install_icon_swap(self.btn_copy, self.icon_copy_light, self.icon_copy_dark)
+        self.btn_copy.setIconSize(QSize(icon_size, icon_size))
+        self.btn_copy.setToolTip("Copiar al portapapeles")
+        self.btn_copy.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        self.btn_save = QPushButton()
+        self.install_icon_swap(self.btn_save, self.icon_save_light, self.icon_save_dark)
+        self.btn_save.setIconSize(QSize(icon_size, icon_size))
+        self.btn_save.setToolTip("Guardar como...")
+        self.btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        self.btn_open = QPushButton()
+        self.install_icon_swap(self.btn_open, self.icon_open_light, self.icon_open_dark)
+        self.btn_open.setIconSize(QSize(icon_size, icon_size))
+        self.btn_open.setToolTip("Abrir con...")
+        self.btn_open.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        self.btn_cancel = QPushButton()
+        self.install_icon_swap(self.btn_cancel, self.icon_cancel_light, self.icon_cancel_dark)
+        self.btn_cancel.setIconSize(QSize(icon_size, icon_size))
+        self.btn_cancel.setToolTip("Cancelar")
+        self.btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
         
+        self.btn_cancel.setStyleSheet("""
+            QPushButton { 
+                min-width: 30px;
+                min-height: 30px;
+                max-width: 30px;
+                max-height: 30px;
+                padding: 4px; 
+                border: 1px solid #555555; 
+                background-color: #3a3a3a; 
+                border-radius: 4px;
+                color: #ffffff;
+            }
+            QPushButton:hover { 
+                background-color: #FF8C00; 
+                color: #1a1a1a;
+            }
+            QPushButton:pressed { 
+                background-color: #E07000; 
+                color: #1a1a1a;
+            }
+        """)
+        # Solo añadimos el botón Auto si no está desactivado ("---")
+        if settings.value("auto_action", "Guardar") != "---":
+            layout.addWidget(self.btn_auto)
+            
         layout.addWidget(self.btn_copy)
-        layout.addWidget(self.btn_auto)
         layout.addWidget(self.btn_save)
+        layout.addWidget(self.btn_open)
         layout.addWidget(self.btn_cancel)
         
+        self.btn_auto.clicked.connect(self.on_auto_clicked)  
         self.btn_copy.clicked.connect(self.on_copy_clicked)
-        self.btn_auto.clicked.connect(self.on_auto_save_clicked)
         self.btn_save.clicked.connect(self.on_save_clicked)
+        self.btn_open.clicked.connect(self.on_open_with_clicked)
         self.btn_cancel.clicked.connect(self.close)
+
         
         self.panel.hide()
+
+    def install_icon_swap(self, button, icon_normal, icon_hover):
+        """Instala event filter para cambiar iconos al hacer hover"""
+        button.setIcon(icon_normal)
+        button._icon_normal = icon_normal
+        button._icon_hover = icon_hover
+        button.enterEvent = lambda e: button.setIcon(button._icon_hover)
+        button.leaveEvent = lambda e: button.setIcon(button._icon_normal)
+
+    def create_svg_icon(self, svg_string, color="#ffffff", size=18):
+        """Convierte un string SVG en un QIcon con un color específico"""
+        # Reemplazar currentColor por el color deseado
+        colored_svg = svg_string.replace('stroke="currentColor"', f'stroke="{color}"')
+        colored_svg = colored_svg.replace('stroke="currentColor"', f'stroke="{color}"')
+        
+        pixmap = QPixmap(size, size)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        renderer = QSvgRenderer(bytes(colored_svg, 'utf-8'))
+        painter = QPainter(pixmap)
+        renderer.render(painter)
+        painter.end()
+        return QIcon(pixmap)
+
+    def obtener_proporcion_info(self, w, h):
+        """
+        Compara la proporción actual con las estándar y devuelve:
+        - None si no coincide con ninguna
+        - (proporcion, '') si es exacta
+        - (proporcion, '+') si el lado corto es demasiado corto (rectángulo más alargado)
+        - (proporcion, '-') si el lado corto es demasiado largo (rectángulo más cuadrado)
+        """
+        if w == 0 or h == 0:
+            return None
+        
+        # Siempre trabajar con la proporción en formato landscape (w >= h) para comparar
+        es_vertical = h > w
+        if es_vertical:
+            w, h = h, w
+        
+        proporcion_actual = w / h
+        
+        # Márgenes:
+        # - Exacto: ±3 píxeles en la proporción
+        # - Con signo: ±15% de la proporción estándar
+        mejor_coincidencia = None
+        mejor_diferencia = float('inf')
+        
+        for prop_w, prop_h in self.proporciones_estandar:
+            # Normalizar la proporción estándar a landscape
+            if prop_h > prop_w:
+                prop_w_comp, prop_h_comp = prop_h, prop_w
+            else:
+                prop_w_comp, prop_h_comp = prop_w, prop_h
+            
+            proporcion_estandar = prop_w_comp / prop_h_comp
+            
+            # Calcular diferencia porcentual
+            diferencia = abs(proporcion_actual - proporcion_estandar) / proporcion_estandar
+            
+            if diferencia < mejor_diferencia:
+                mejor_diferencia = diferencia
+                
+                # Determinar el signo
+                margen_exacto = 3 / max(w, h)  # 3 píxeles de tolerancia
+                margen_amplio = 0.15  # 15% de tolerancia
+                
+                if diferencia <= margen_exacto:
+                    signo = ''
+                elif diferencia <= margen_amplio:
+                    if proporcion_actual > proporcion_estandar:
+                        signo = '+'  # Más alargado
+                    else:
+                        signo = '-'  # Más cuadrado
+                else:
+                    continue  # Fuera de margen, ignorar esta proporción
+                
+                # Usar la proporción original (respetando orientación)
+                if es_vertical:
+                    mejor_coincidencia = (f"{prop_h}:{prop_w}", signo)
+                else:
+                    mejor_coincidencia = (f"{prop_w}:{prop_h}", signo)
+        
+        return mejor_coincidencia
+    
+    def obtener_dimensiones_actuales(self):
+        """Obtiene las dimensiones actuales de la selección o del arrastre"""
+        if self.mode == 'new_selection' and self.is_selecting:
+            return abs(self.current_pos.x() - self.begin.x()), abs(self.current_pos.y() - self.begin.y())
+        elif self.mode == 'resizing' and self.is_selecting and self.resize_anchor is not None:
+            return abs(self.current_pos.x() - self.resize_anchor.x()), abs(self.current_pos.y() - self.resize_anchor.y())
+        elif not self.selection_rect.isNull():
+            return self.selection_rect.width(), self.selection_rect.height()
+        return 0, 0
 
     def get_handle_at(self, pos):
         if self.selection_rect.isNull():
@@ -366,7 +824,15 @@ class CaptureOverlay(QWidget):
 
             w_px = int(self.selection_rect.width() * self.ratio)
             h_px = int(self.selection_rect.height() * self.ratio)
-            text = f"{w_px} × {h_px}"
+            
+            # Obtener información de proporción
+            proporcion_info = self.obtener_proporcion_info(w_px, h_px)
+            
+            if proporcion_info:
+                proporcion_texto, signo = proporcion_info
+                text = f"{w_px} × {h_px}  |  {proporcion_texto}{signo}"
+            else:
+                text = f"{w_px} × {h_px}"
             
             font = QFont("Arial", 8)
             painter.setFont(font)
@@ -394,8 +860,14 @@ class CaptureOverlay(QWidget):
             painter.setBrush(QColor(0, 0, 0, 180))
             painter.drawRect(bg_rect)
             
-            painter.setPen(QColor(255, 255, 255))
-            painter.drawText(bg_rect, Qt.AlignmentFlag.AlignCenter, text)
+            # Si hay signo +/-, mostrarlo en un color diferente para destacar
+            if proporcion_info and signo:
+                # Dibujar el texto base en blanco
+                painter.setPen(QColor(255, 255, 255))
+                painter.drawText(bg_rect, Qt.AlignmentFlag.AlignCenter, text)
+            else:
+                painter.setPen(QColor(255, 255, 255))
+                painter.drawText(bg_rect, Qt.AlignmentFlag.AlignCenter, text)
 
         if show_lupa and not self.current_pos.isNull():
             pen = QPen(QColor(255, 255, 255, 100), 1, Qt.PenStyle.SolidLine)
@@ -478,6 +950,76 @@ class CaptureOverlay(QWidget):
             painter.drawLine(center.x() - cross_size, center.y(), center.x() + cross_size, center.y())
             painter.drawLine(center.x(), center.y() - cross_size, center.x(), center.y() + cross_size)
 
+    def calcular_mcd(self, a, b):
+        """Calcula el Máximo Común Divisor usando el algoritmo de Euclides"""
+        a, b = abs(a), abs(b)
+        while b:
+            a, b = b, a % b
+        return a
+    
+    def simplificar_proporcion(self, w, h):
+        """Simplifica una proporción a sus términos más pequeños"""
+        if w == 0 or h == 0:
+            return None
+        
+        mcd = self.calcular_mcd(w, h)
+        w_simplificado = w // mcd
+        h_simplificado = h // mcd
+        
+        return w_simplificado, h_simplificado
+    
+    def buscar_proporcion_cercana(self, w, h, max_denominador=20):
+        """Busca una proporción estándar cercana usando fracciones continuas (con caché)"""
+        if w == 0 or h == 0:
+            return None
+        
+        # Verificar caché
+        cache_key = (w, h)
+        if cache_key in self.proporcion_cache:
+            return self.proporcion_cache[cache_key]
+            
+        # Calcular la proporción exacta simplificada
+        proporcion_exacta = self.simplificar_proporcion(w, h)
+        if not proporcion_exacta:
+            return None
+            
+        w_exacto, h_exacto = proporcion_exacta
+        
+        # Si ya es una proporción simple (denominador pequeño), devolverla directamente
+        if max(w_exacto, h_exacto) <= max_denominador:
+            resultado = f"{w_exacto}:{h_exacto}", True
+            self.proporcion_cache[cache_key] = resultado
+            return resultado
+            
+        # Buscar la fracción más cercana con denominador limitado
+        objetivo = w / h
+        
+        mejor_diferencia = float('inf')
+        mejor_w = w_exacto
+        mejor_h = h_exacto
+        
+        # Probar denominadores desde 1 hasta max_denominador
+        for den in range(1, max_denominador + 1):
+            # Calcular el numerador más cercano
+            num = round(objetivo * den)
+            if num < 1:
+                num = 1
+            
+            diferencia = abs(objetivo - (num / den))
+            
+            if diferencia < mejor_diferencia:
+                mejor_diferencia = diferencia
+                mejor_w = num
+                mejor_h = den
+        
+        # Determinar si es una aproximación
+        es_exacto = abs(objetivo - (mejor_w / mejor_h)) < 0.01
+        
+        resultado = f"{mejor_w}:{mejor_h}", es_exacto
+        self.proporcion_cache[cache_key] = resultado
+        return resultado
+
+
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.current_pos = event.pos()
@@ -514,9 +1056,9 @@ class CaptureOverlay(QWidget):
             self.close()
 
     def _get_modifiers_config(self):
-        """Devuelve (mod_sq, mod_pr, mod_inv_prop, prop_w, prop_h) leyendo settings."""
+        """Devuelve (mod_lock, mod_pr, mod_inv_prop, prop_w, prop_h) leyendo settings."""
         settings = QSettings("kdgdkd", "Captura")
-        mod_sq_str = settings.value("mod_square", "Ctrl")
+        mod_lock_str = settings.value("mod_lock", "Ctrl")
         mod_pr_str = settings.value("mod_prop", "Shift")
         mod_inv_pr_str = settings.value("mod_inv_prop", "Alt")
 
@@ -526,19 +1068,19 @@ class CaptureOverlay(QWidget):
             if s == "Ctrl": return Qt.KeyboardModifier.ControlModifier
             return Qt.KeyboardModifier.NoModifier
 
-        mod_sq = str_to_mod(mod_sq_str)
+        mod_lock = str_to_mod(mod_lock_str)
         mod_pr = str_to_mod(mod_pr_str)
         mod_inv_pr = str_to_mod(mod_inv_pr_str)
         prop_w = int(settings.value("prop_w", 9))
         prop_h = int(settings.value("prop_h", 16))
-        return mod_sq, mod_pr, mod_inv_pr, prop_w, prop_h
+        return mod_lock, mod_pr, mod_inv_pr, prop_w, prop_h
 
     def _constrain_endpoint(self, anchor, cursor, modifiers):
         """
         Dada un ancla fija y la posición del cursor, devuelve el punto opuesto
-        del rectángulo aplicando los modificadores activos (cuadrado / proporción).
+        del rectángulo aplicando los modificadores activos.
         """
-        mod_sq, mod_pr, mod_inv_pr, prop_w, prop_h = self._get_modifiers_config()
+        mod_lock, mod_pr, mod_inv_pr, prop_w, prop_h = self._get_modifiers_config()
 
         dx = cursor.x() - anchor.x()
         dy = cursor.y() - anchor.y()
@@ -551,11 +1093,58 @@ class CaptureOverlay(QWidget):
         abs_dx = abs(dx)
         abs_dy = abs(dy)
 
-        if modifiers & mod_sq:
-            side = max(abs_dx, abs_dy)
-            return QPoint(anchor.x() + side * sign_x, anchor.y() + side * sign_y)
-
-        # Si se invierten proporciones, aplicamos el constraint invertido.
+        # Bloquear a la proporción mostrada (Ctrl por defecto)
+        if modifiers & mod_lock:
+            # Obtener la proporción actual mostrada en la UI
+            proporcion_info = self.obtener_proporcion_actual()
+            
+            if proporcion_info:
+                proporcion_texto, _ = proporcion_info
+                
+                # Parsear la proporción objetivo
+                partes = proporcion_texto.split(':')
+                if len(partes) == 2:
+                    target_w = float(partes[0])
+                    target_h = float(partes[1])
+                    target_ratio = target_w / target_h
+                    
+                    # El cursor define uno de los lados del rectángulo
+                    # Calculamos dos posibles alturas y dos posibles anchos
+                    
+                    # Opción 1: cursor define el borde horizontal (misma Y, X ajustada por proporción)
+                    # Opción 2: cursor define el borde vertical (misma X, Y ajustada por proporción)
+                    
+                    # Para opción 1: altura = |dy|, ancho = altura * ratio
+                    # Para opción 2: ancho = |dx|, altura = ancho / ratio
+                    
+                    # Elegimos la opción que hace que el rectángulo sea más grande
+                    # (el cursor está en el borde que está más lejos del ancla)
+                    
+                    option1_width = abs_dy * target_ratio
+                    option2_height = abs_dx / target_ratio
+                    
+                    # El cursor define el borde que maximiza el área del rectángulo
+                    if option1_width * abs_dy >= abs_dx * option2_height:
+                        # El cursor está en el borde horizontal
+                        if option1_width >= abs_dx:
+                            # El cursor está en la esquina (borde horizontal y vertical derecho)
+                            return QPoint(anchor.x() + int(option1_width) * sign_x, cursor.y())
+                        else:
+                            # El cursor está en el borde vertical
+                            return QPoint(cursor.x(), anchor.y() + int(abs_dx / target_ratio) * sign_y)
+                    else:
+                        # El cursor está en el borde vertical
+                        if option2_height >= abs_dy:
+                            # El cursor está en la esquina
+                            return QPoint(cursor.x(), anchor.y() + int(option2_height) * sign_y)
+                        else:
+                            # El cursor está en el borde horizontal
+                            return QPoint(anchor.x() + int(abs_dy * target_ratio) * sign_x, cursor.y())
+            
+            # Si no hay proporción mostrada, selección libre
+            return QPoint(cursor)
+        
+        # Bloquear a proporción preferida (Shift por defecto)
         is_inverted = (modifiers & mod_inv_pr)
         is_prop_active = (modifiers & mod_pr) or is_inverted
         
@@ -563,7 +1152,6 @@ class CaptureOverlay(QWidget):
             target_w = prop_h if is_inverted else prop_w
             target_h = prop_w if is_inverted else prop_h
             
-            # Proyección sobre la diagonal de proporción: el lado dominante manda.
             if abs_dx / target_w > abs_dy / target_h:
                 h = int(abs_dx * target_h / target_w)
                 return QPoint(anchor.x() + dx, anchor.y() + h * sign_y)
@@ -572,6 +1160,16 @@ class CaptureOverlay(QWidget):
                 return QPoint(anchor.x() + w * sign_x, anchor.y() + dy)
 
         return QPoint(cursor)
+    
+    def obtener_proporcion_actual(self):
+        """Obtiene la proporción que se está mostrando actualmente en la UI"""
+        if self.selection_rect.isNull():
+            return None
+            
+        w_px = int(self.selection_rect.width() * self.ratio)
+        h_px = int(self.selection_rect.height() * self.ratio)
+        
+        return self.obtener_proporcion_info(w_px, h_px)
 
     def _anchor_for_handle(self, handle):
         """Vértice opuesto al handle activo (sirve de ancla durante el resize)."""
@@ -686,14 +1284,26 @@ class CaptureOverlay(QWidget):
                 self.on_copy_clicked()
                 return
 
-        # Update geometry live if modifier is pressed
-        self.update_selection()
-        self.update_resize()
+        # Actualizar geometría cuando se presiona un modificador
+        modifiers = QApplication.keyboardModifiers()
+        mod_lock, _, _, _, _ = self._get_modifiers_config()
+        
+        # Si se presionó el modificador de bloqueo, ajustar a la proporción mostrada
+        if modifiers & mod_lock and self.is_selecting:
+            if self.mode == 'new_selection':
+                self.update_selection()
+            elif self.mode == 'resizing':
+                self.update_resize()
+        
         self.update()
 
     def keyReleaseEvent(self, event):
-        self.update_selection()
-        self.update_resize()
+        # Actualizar geometría cuando se suelta un modificador
+        if self.is_selecting:
+            if self.mode == 'new_selection':
+                self.update_selection()
+            elif self.mode == 'resizing':
+                self.update_resize()
         self.update()
 
     def show_export_menu(self, pos):
@@ -721,34 +1331,117 @@ class CaptureOverlay(QWidget):
         self.panel.show()
 
     def on_copy_clicked(self):
-        self.btn_copy.setStyleSheet("background-color: #0078d7; color: white; border-radius: 2px;")
+        self.btn_copy.setStyleSheet(self.FEEDBACK_STYLE)
         self.copy_to_clipboard()
         QTimer.singleShot(200, self.close)
         
-    def on_auto_save_clicked(self):
+    def on_auto_clicked(self):
         settings = QSettings("kdgdkd", "Captura")
-        save_dir = settings.value("save_dir", os.path.expanduser('~'))
-        fmt = settings.value("out_format", "PNG").lower()
-        quality = int(settings.value("out_quality", 100))
+        action = settings.value("auto_action", "Guardar")
         
-        from datetime import datetime
-        fecha_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{fecha_str}_captura.{fmt}"
-        path = os.path.join(save_dir, filename)
-        
-        os.makedirs(save_dir, exist_ok=True)
-        
-        if self.get_cropped_pixmap().save(path, format=fmt.upper(), quality=quality):
-            print(f"Auto-guardado en {path}")
-            self.btn_auto.setStyleSheet("background-color: #0078d7; color: white; border-radius: 2px;")
+        if action == "Copiar":
+            self.btn_auto.setStyleSheet(self.FEEDBACK_STYLE)
+            self.copy_to_clipboard()
             QTimer.singleShot(200, self.close)
-        else:
-            print(f"Error al auto-guardar en {path}")
+            
+        elif action == "Guardar":
+            save_dir = settings.value("save_dir", os.path.expanduser('~'))
+            fmt = settings.value("out_format", "PNG").lower()
+            quality = int(settings.value("out_quality", 100))
+            
+            from datetime import datetime
+            fecha_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{fecha_str}_captura.{fmt}"
+            path = os.path.join(save_dir, filename)
+            
+            os.makedirs(save_dir, exist_ok=True)
+            
+            if self.get_cropped_pixmap().save(path, format=fmt.upper(), quality=quality):
+                print(f"Auto-guardado en {path}")
+                self.btn_auto.setStyleSheet(self.FEEDBACK_STYLE)
+                QTimer.singleShot(200, self.close)
+            else:
+                print(f"Error al auto-guardar en {path}")
+                
+        elif action == "Abrir":
+            editor_path = settings.value("editor_path", "")
+            
+            # Verificar si es una URL
+            from urllib.parse import urlparse
+            parsed = urlparse(editor_path) if editor_path else None
+            is_url = parsed and parsed.scheme in ('http', 'https', 'ftp')
+            
+            if is_url:
+                # Si es una URL, copiar al portapapeles y luego abrir el navegador
+                import webbrowser
+                self.copy_to_clipboard()
+                print("Imagen copiada al portapapeles. Abriendo URL...")
+                self.btn_auto.setStyleSheet(self.FEEDBACK_STYLE)
+                webbrowser.open(editor_path)
+                QTimer.singleShot(200, self.close)
+                
+            elif editor_path and os.path.exists(editor_path):
+                # Si es una ruta de archivo válida, guardar temporal y abrir con editor
+                fd, temp_path = tempfile.mkstemp(suffix=".png")
+                os.close(fd)
+                
+                if self.get_cropped_pixmap().save(temp_path, format="PNG"):
+                    self.btn_auto.setStyleSheet(self.FEEDBACK_STYLE)
+                    subprocess.Popen([editor_path, temp_path])
+                    QTimer.singleShot(200, self.close)
+                else:
+                    print("Error al guardar el archivo temporal para abrir la imagen.")
+            else:
+                # Si no hay editor configurado o la ruta no es válida, usar el diálogo nativo
+                fd, temp_path = tempfile.mkstemp(suffix=".png")
+                os.close(fd)
+                
+                if self.get_cropped_pixmap().save(temp_path, format="PNG"):
+                    self.btn_auto.setStyleSheet(self.FEEDBACK_STYLE)
+                    if os.name == 'nt':
+                        subprocess.Popen(['rundll32.exe', 'shell32.dll,OpenAs_RunDLL', temp_path])
+                    QTimer.singleShot(200, self.close)
+                else:
+                    print("Error al guardar el archivo temporal para abrir la imagen.")
+
 
     def on_save_clicked(self):
         if self.save_to_file():
-            self.btn_save.setStyleSheet("background-color: #0078d7; color: white; border-radius: 2px;")
+            self.btn_save.setStyleSheet(self.FEEDBACK_STYLE)
             QTimer.singleShot(200, self.close)
+
+
+    def on_open_with_clicked(self):
+        settings = QSettings("kdgdkd", "Captura")
+        editor_path = settings.value("editor_path", "")
+        
+        # Verificar si es una URL
+        from urllib.parse import urlparse
+        parsed = urlparse(editor_path) if editor_path else None
+        is_url = parsed and parsed.scheme in ('http', 'https', 'ftp')
+        
+        if is_url:
+            # Si es una URL, copiar al portapapeles y luego abrir el navegador
+            import webbrowser
+            self.copy_to_clipboard()
+            print("Imagen copiada al portapapeles. Abriendo URL...")
+            self.btn_open.setStyleSheet(self.FEEDBACK_STYLE)
+            webbrowser.open(editor_path)
+            QTimer.singleShot(200, self.close)
+        else:
+            # Comportamiento original para archivos locales
+            fd, temp_path = tempfile.mkstemp(suffix=".png")
+            os.close(fd)
+            
+            if self.get_cropped_pixmap().save(temp_path, format="PNG"):
+                self.btn_open.setStyleSheet(self.FEEDBACK_STYLE)
+                
+                if os.name == 'nt':
+                    subprocess.Popen(['rundll32.exe', 'shell32.dll,OpenAs_RunDLL', temp_path])
+                
+                QTimer.singleShot(200, self.close)
+            else:
+                print("Error al guardar el archivo temporal para abrir la imagen.")
 
     def get_cropped_pixmap(self):
         physical_rect = QRect(self.selection_rect.topLeft() * self.ratio, 
@@ -780,7 +1473,6 @@ class CaptureOverlay(QWidget):
 
 class ScreenshotApp:
     def __init__(self):
-        # Solución para que Windows muestre el icono en la barra de tareas en lugar del de Python
         if os.name == 'nt':
             import ctypes
             try:
@@ -811,9 +1503,7 @@ class ScreenshotApp:
         hk_full = settings.value("hotkey_full", "shift+print screen")
 
         # Si ambos atajos comparten la misma tecla base (ej. "print screen" y
-        # "shift+print screen"), registrarlos por separado con la librería
-        # `keyboard` provoca que se pisen entre sí y el simple deje de dispararse.
-        # Detectamos ese caso y los gestionamos con un único hook manual.
+        # "shift+print screen"), los gestionamos con un único hook manual.
         def parse_combo(combo):
             parts = [p.strip().lower() for p in combo.split('+') if p.strip()]
             mods = set(p for p in parts if p in ('ctrl', 'control', 'shift', 'alt', 'win', 'cmd'))

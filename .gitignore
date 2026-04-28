@@ -20,3 +20,10 @@ __pycache__/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# AI folders
+.deepseek
+
+# backups
+captura_v2.ico
+build_exe.bat
