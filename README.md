@@ -1,4 +1,4 @@
-# captura.py — Herramienta de Capturas de Pantalla
+﻿# captura.py — Herramienta de Capturas de Pantalla
 
 Utilidad ligera en Python que se ejecuta en la bandeja del sistema. Soporta selección de zona, captura de pantalla completa, lupa, atajos configurables y múltiples opciones de exportación.
 
@@ -72,12 +72,13 @@ La aplicación arranca en silencio — no aparece ninguna ventana.
 
 ## Atajos por defecto
 
-| Acción                       | Atajo por defecto   |
-| ---------------------------- | ------------------- |
-| Captura de zona              | `Impr Pant`         |
-| Captura de pantalla completa | `Shift + Impr Pant` |
+| Acción                       | Atajo por defecto        |
+| ---------------------------- | ------------------------ |
+| Captura de zona              | `Impr Pant`              |
+| Captura de pantalla completa | `Shift + Impr Pant`      |
+| Captura silenciosa           | `Ctrl + Impr Pant`       |
 
-Ambos atajos se pueden cambiar en Configuración (ver más abajo).
+Los tres atajos se pueden cambiar en Configuración. La **captura silenciosa** ejecuta la acción Auto (guardar, copiar o abrir) directamente, sin mostrar el overlay, y confirma la acción con una notificación de bandeja.
 
 ---
 
@@ -105,7 +106,9 @@ Mantén pulsada una tecla modificadora **mientras arrastras** para restringir la
 | `Shift`                   | Bloquea la selección a la **relación de aspecto preferida** configurada en Ajustes (por defecto: 9:16).                                                                                                                        |
 | `Alt`                     | **Invierte** la relación de aspecto preferida (por defecto, pasa de 9:16 a 16:9).                                                                                                                                              |
 
-Estos modificadores son configurables en Ajustes. Puedes asignar `Ctrl`, `Shift`, `Alt` o `---` (desactivado) a cada función. 
+Estos modificadores son configurables en Ajustes. Puedes asignar `Ctrl`, `Shift`, `Alt` o `---` (desactivado) a cada función.
+
+Mientras mantienes pulsado un modificador, aparece un **chip de color** junto al indicador de dimensiones indicando el modo activo (azul = bloqueado, verde = forzado, violeta = invertido).
 
 ---
 
@@ -158,6 +161,18 @@ Tras hacer una selección (o tras una captura de pantalla completa), aparecen ha
 
 Los atajos de teclado (`Enter`, `C`, `G`, `S`) solo funcionan cuando el panel de exportación está visible.
 
+### Atajos del panel de exportación
+
+| Tecla        | Acción                        |
+| ------------ | ----------------------------- |
+| `Enter` / `C`| Copiar al portapapeles        |
+| `G` / `S`    | Guardar como…                 |
+| `Esc`        | Cancelar y cerrar el overlay  |
+
+### Drag & drop
+
+Puedes **arrastrar la imagen directamente desde el panel** (desde cualquier botón o área del panel) hacia otras aplicaciones: Word, navegador, carpeta del explorador, etc. La imagen se transfiere como PNG.
+
 ### Comportamiento detallado del botón Auto
 
 La acción del botón Auto depende del valor configurado en Ajustes → Auto → **Acción 'Auto'**:
@@ -189,6 +204,10 @@ Haz clic derecho sobre el icono de la bandeja para acceder a:
 
 - **Nueva captura** — inicia una captura de zona.
 - **Capturar Pantalla** — captura la pantalla completa (la pantalla donde está el cursor en ese momento).
+- **Captura silenciosa** — captura la pantalla y ejecuta la acción Auto (guardar/copiar/abrir) sin mostrar el overlay. Notifica el resultado con un mensaje de bandeja.
+- **Captura con retardo** — submenú con opciones de 3, 5 y 10 segundos. Muestra una notificación de cuenta atrás y lanza la captura de zona tras la pausa. Útil para capturar menús contextuales que se cerrarían al pulsar otra tecla.
+- **Capturar ventana** — detecta la ventana activa bajo el cursor usando la API de Windows (`EnumWindows`/`GetWindowRect`) y abre el overlay con la región de la ventana preseleccionada. En sistemas no Windows, equivale a una captura de zona normal.
+- **Capturar monitor** — submenú que lista todos los monitores detectados con su resolución. Al seleccionar uno, captura la pantalla completa de ese monitor y abre el panel de exportación.
 - **Configuración** — abre el diálogo de ajustes. Si ya está abierto, la ventana se trae al frente.
 - **Reiniciar** — reinicia el proceso completamente (útil si los atajos dejan de funcionar).
 - **Salir** — cierra la aplicación.
@@ -205,10 +224,13 @@ El diálogo de configuración se organiza en cuatro secciones.
 
 ### Sección: Atajos
 
+> El diálogo de configuración ahora incluye botones **Cancelar** y **Restaurar por defecto**, y acepta `Enter` para guardar y `Esc` para cancelar.
+
 | Ajuste                      | Descripción                                                                                                                                                                                                                  |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Capturar Zona**           | Atajo para la captura de zona. Haz clic en *Grabar* y pulsa la combinación deseada.                                                                                                                                          |
 | **Capturar Pantalla**       | Atajo para la captura completa. Mismo método de grabación.                                                                                                                                                                   |
+| **Captura silenciosa**      | Atajo para la captura silenciosa (ejecuta la acción Auto directamente, sin overlay). Mismo método de grabación.                                                                                                              |
 | **Bloquear proporción**     | Tecla modificadora para bloquear la selección a la proporción que se está mostrando actualmente en pantalla (por defecto: `Ctrl`). Opciones: `---`, `Ctrl`, `Shift`, `Alt`.                                                  |
 | **Forzar preferidas**       | Tecla modificadora para bloquear la relación de aspecto preferida configurada abajo (por defecto: `Shift`). Opciones: `---`, `Ctrl`, `Shift`, `Alt`.                                                                         |
 | **Invertir preferidas**     | Tecla modificadora para invertir la relación de aspecto bloqueada (por defecto: `Alt`). Por ejemplo, si la proporción preferida es 9:16, al pulsar este modificador se fuerza 16:9. Opciones: `---`, `Ctrl`, `Shift`, `Alt`. |
@@ -243,6 +265,8 @@ El diálogo de configuración se organiza en cuatro secciones.
 | **Iniciar con Windows** | Añade o elimina la entrada `CapturaKdgdkd` en el registro de Windows para que la aplicación se ejecute automáticamente al iniciar sesión. |
 | **Formato de salida**   | `PNG` (sin pérdida) o `JPG`. Afecta tanto al auto-guardado como al diálogo Guardar como.                                                  |
 | **Calidad JPG**         | Calidad de compresión para la salida JPG (1–100). Se desactiva automáticamente cuando el formato seleccionado es PNG.                     |
+| **Idioma**              | Español o English. Cambiar el idioma reinicia la aplicación automáticamente para recargar todas las cadenas.                              |
+| **Tema**                | `Automático` (detecta el tema de Windows desde el registro), `Claro` u `Oscuro`. Afecta al panel de exportación, iconos y elementos del overlay. |
 
 La configuración se persiste mediante `QSettings` bajo la clave `kdgdkd/Captura` (ubicación según SO: registro en Windows, `~/.config` en Linux, `~/Library/Preferences` en macOS).
 
@@ -255,6 +279,28 @@ La configuración se persiste mediante `QSettings` bajo la clave `kdgdkd/Captura
 La aplicación captura la pantalla donde se encuentra el cursor del ratón en el momento de iniciar la captura (tanto para captura de zona como para pantalla completa), usando `QApplication.screenAt(QCursor.pos())`. Si por alguna razón no se puede determinar la pantalla, se usa la pantalla principal.
 
 Las capturas manejan correctamente el `devicePixelRatio` (escalado DPI) de cada pantalla.
+
+---
+
+## Captura con retardo
+
+Permite posponer la captura de zona entre 3, 5 o 10 segundos. Al seleccionar una opción del submenú *Captura con retardo*, aparece una notificación en la bandeja con el tiempo de espera. Transcurrido el plazo, se abre el overlay normalmente.
+
+Ideal para situaciones donde necesitas abrir un menú contextual o posicionar el ratón antes de que el overlay tome el control de la pantalla.
+
+---
+
+## Captura de ventana
+
+Selecciona *Capturar ventana* en el menú de bandeja para detectar automáticamente la ventana bajo el cursor mediante la API de Windows. El overlay se abre con la región de la ventana preseleccionada, lista para exportar.
+
+En sistemas no Windows, la opción equivale a una captura de zona normal.
+
+---
+
+## Captura de monitor específico
+
+El submenú *Capturar monitor* lista todos los monitores conectados con su nombre y resolución. Al elegir uno, se captura la pantalla completa de ese monitor y se muestra el panel de exportación. Útil en configuraciones multi-monitor cuando quieres capturar un monitor distinto al que tiene el cursor.
 
 ---
 

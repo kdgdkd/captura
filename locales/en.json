@@ -1,0 +1,101 @@
+{
+    "app.tooltip": "Captura",
+
+    "tray.area": "New capture",
+    "tray.fullscreen": "Full Screen",
+    "tray.silent": "Silent capture",
+    "tray.delay": "Delayed capture",
+    "tray.delay.3s": "3 seconds",
+    "tray.delay.5s": "5 seconds",
+    "tray.delay.10s": "10 seconds",
+    "tray.window": "Capture window",
+    "tray.monitor": "Capture monitor",
+    "tray.settings": "Settings",
+    "tray.restart": "Restart",
+    "tray.quit": "Quit",
+
+    "settings.title": "Captura Settings",
+
+    "settings.group.shortcuts": "Shortcuts",
+    "settings.group.magnifier": "Magnifier",
+    "settings.group.auto": "Auto",
+    "settings.group.general": "General",
+
+    "settings.label.capture_zone": "Capture Area:",
+    "settings.label.capture_full": "Capture Screen:",
+    "settings.label.capture_silent": "Silent capture:",
+    "settings.label.lock_ratio": "Lock ratio:",
+    "settings.label.force_ratio": "Force preferred:",
+    "settings.label.invert_ratio": "Invert preferred:",
+    "settings.label.pref_ratio": "Preferred ratio:",
+
+    "settings.label.activate_magnifier": "Enable Magnifier:",
+    "settings.label.zoom": "Zoom:",
+    "settings.label.mag_size": "Size:",
+    "settings.label.show_coords": "Show coordinates:",
+
+    "settings.label.auto_action": "Auto action:",
+    "settings.label.save_dir": "Save to:",
+    "settings.label.open_with": "Open with:",
+
+    "settings.label.auto_start": "Start with Windows:",
+    "settings.label.out_format": "Output format:",
+    "settings.label.out_quality": "JPG quality:",
+
+    "settings.label.language": "Language:",
+    "settings.label.theme": "Theme:",
+
+    "theme.auto": "Auto",
+    "theme.light": "Light",
+    "theme.dark": "Dark",
+
+    "settings.btn.restore": "Restore defaults",
+    "settings.btn.cancel": "Cancel",
+    "settings.btn.save": "Save",
+    "settings.btn.browse": "...",
+    "settings.btn.record": "Record",
+    "settings.btn.recording": "Ready",
+
+    "settings.placeholder.record": "Press keys...",
+    "settings.placeholder.editor": "Editor path (.exe) or URL (https://...)",
+
+    "settings.tooltip.paste_url": "Paste URL from clipboard",
+
+    "mod.none": "---",
+    "mod.ctrl": "Ctrl",
+    "mod.shift": "Shift",
+    "mod.alt": "Alt",
+
+    "auto.save": "Save",
+    "auto.open": "Open",
+    "auto.copy": "Copy",
+    "auto.none": "---",
+
+    "overlay.auto_tip": "Auto: {action}",
+    "overlay.copy_tip": "Copy to clipboard",
+    "overlay.save_tip": "Save as...",
+    "overlay.open_tip": "Open with...",
+    "overlay.cancel_tip": "Cancel",
+
+    "notify.title": "Captura",
+    "notify.copied": "Image copied to clipboard",
+    "notify.saved": "Capture saved",
+    "notify.silent_copied": "Screen copied to clipboard",
+    "notify.delay.title": "Delayed capture",
+    "notify.delay.msg": "Capture in {seconds} second(s)...",
+
+    "dialog.save_title": "Save image",
+    "dialog.select_dir": "Select folder",
+    "dialog.select_editor": "Select editor or URL",
+    "dialog.file_filter_exe": "Executables (*.exe);;All files (*.*)",
+
+    "warn.modifier_conflict": "Modifier conflict",
+    "warn.modifier_conflict_msg": "Modifiers are assigned to multiple functions.\nPlease assign different modifiers or use '---' to deactivate them.",
+    "warn.invalid_path": "Invalid path",
+    "warn.invalid_path_msg": "'{path}' is not a valid path or URL.\nPlease enter an existing file path or a valid URL.",
+    "warn.not_url": "Not a URL",
+    "warn.not_url_msg": "The clipboard text does not appear to be a valid URL.",
+
+    "lang.es": "Español",
+    "lang.en": "English"
+}

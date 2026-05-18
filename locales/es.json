@@ -1,0 +1,101 @@
+{
+    "app.tooltip": "Captura",
+
+    "tray.area": "Nueva captura",
+    "tray.fullscreen": "Capturar Pantalla",
+    "tray.silent": "Captura silenciosa",
+    "tray.delay": "Captura con retardo",
+    "tray.delay.3s": "3 segundos",
+    "tray.delay.5s": "5 segundos",
+    "tray.delay.10s": "10 segundos",
+    "tray.window": "Capturar ventana",
+    "tray.monitor": "Capturar monitor",
+    "tray.settings": "Configuración",
+    "tray.restart": "Reiniciar",
+    "tray.quit": "Salir",
+
+    "settings.title": "Configuración de Captura",
+
+    "settings.group.shortcuts": "Atajos",
+    "settings.group.magnifier": "Lupa",
+    "settings.group.auto": "Auto",
+    "settings.group.general": "General",
+
+    "settings.label.capture_zone": "Capturar Zona:",
+    "settings.label.capture_full": "Capturar Pantalla:",
+    "settings.label.capture_silent": "Captura silenciosa:",
+    "settings.label.lock_ratio": "Bloquear proporción:",
+    "settings.label.force_ratio": "Forzar preferidas:",
+    "settings.label.invert_ratio": "Invertir preferidas:",
+    "settings.label.pref_ratio": "Proporciones preferidas:",
+
+    "settings.label.activate_magnifier": "Activar Lupa:",
+    "settings.label.zoom": "Zoom:",
+    "settings.label.mag_size": "Tamaño:",
+    "settings.label.show_coords": "Mostrar coordenadas:",
+
+    "settings.label.auto_action": "Acción 'Auto':",
+    "settings.label.save_dir": "Guardar en:",
+    "settings.label.open_with": "Abrir con:",
+
+    "settings.label.auto_start": "Iniciar con Windows:",
+    "settings.label.out_format": "Formato de salida:",
+    "settings.label.out_quality": "Calidad JPG:",
+
+    "settings.label.language": "Idioma:",
+    "settings.label.theme": "Tema:",
+
+    "theme.auto": "Automático",
+    "theme.light": "Claro",
+    "theme.dark": "Oscuro",
+
+    "settings.btn.restore": "Restaurar por defecto",
+    "settings.btn.cancel": "Cancelar",
+    "settings.btn.save": "Guardar",
+    "settings.btn.browse": "...",
+    "settings.btn.record": "Grabar",
+    "settings.btn.recording": "Listo",
+
+    "settings.placeholder.record": "Presione teclas...",
+    "settings.placeholder.editor": "Ruta de editor (.exe) o URL (https://...)",
+
+    "settings.tooltip.paste_url": "Pegar URL del portapapeles",
+
+    "mod.none": "---",
+    "mod.ctrl": "Ctrl",
+    "mod.shift": "Shift",
+    "mod.alt": "Alt",
+
+    "auto.save": "Guardar",
+    "auto.open": "Abrir",
+    "auto.copy": "Copiar",
+    "auto.none": "---",
+
+    "overlay.auto_tip": "Auto: {action}",
+    "overlay.copy_tip": "Copiar al portapapeles",
+    "overlay.save_tip": "Guardar como...",
+    "overlay.open_tip": "Abrir con...",
+    "overlay.cancel_tip": "Cancelar",
+
+    "notify.title": "Captura",
+    "notify.copied": "Imagen copiada al portapapeles",
+    "notify.saved": "Captura guardada",
+    "notify.silent_copied": "Pantalla copiada al portapapeles",
+    "notify.delay.title": "Captura con retardo",
+    "notify.delay.msg": "Captura en {seconds} segundo(s)...",
+
+    "dialog.save_title": "Guardar imagen",
+    "dialog.select_dir": "Seleccionar carpeta",
+    "dialog.select_editor": "Seleccionar editor o URL",
+    "dialog.file_filter_exe": "Ejecutables (*.exe);;Todos los archivos (*.*)",
+
+    "warn.modifier_conflict": "Conflicto de modificadores",
+    "warn.modifier_conflict_msg": "Hay modificadores asignados a múltiples funciones.\nPor favor, asigna modificadores diferentes o usa '---' para desactivarlos.",
+    "warn.invalid_path": "Ruta no válida",
+    "warn.invalid_path_msg": "'{path}' no es una ruta válida ni una URL.\nPor favor, introduce una ruta de archivo existente o una URL válida.",
+    "warn.not_url": "No es una URL",
+    "warn.not_url_msg": "El texto del portapapeles no parece ser una URL válida.",
+
+    "lang.es": "Español",
+    "lang.en": "English"
+}

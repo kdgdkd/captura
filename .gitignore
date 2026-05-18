@@ -1,7 +1,8 @@
 # Build and distribution
 build/
-# dist/
+dist/
 *.spec
+*.spec~
 
 # Virtual environment
 venv/
@@ -23,6 +24,15 @@ desktop.ini
 
 # AI folders
 .deepseek
+.claude 
+
+# backup
+.backup
+
+
+# tests
+tests
+
 
 # backups
 captura_v2.ico

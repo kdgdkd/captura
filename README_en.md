@@ -183,6 +183,10 @@ Right-click the tray icon to access:
 
 - **Nueva captura** — starts an area capture.
 - **Capturar Pantalla** — captures the full screen (the screen where the cursor is at that moment).
+- **Captura silenciosa** — captures the screen and runs the Auto action (save/copy/open) without showing the overlay. The result is notified via a tray message.
+- **Captura con retardo** — submenu with 3, 5 and 10 second options. Shows a countdown notification and launches area capture after the delay. Useful for capturing context menus that would close on key press.
+- **Capturar ventana** — detects the active window under the cursor using the Windows API (`EnumWindows`/`GetWindowRect`) and opens the overlay with the window region pre-selected. On non-Windows systems, it falls back to a normal area capture.
+- **Capturar monitor** — submenu listing all detected monitors with their resolution. Selecting one captures that monitor's full screen and opens the export panel.
 - **Configuración** — opens the settings dialog. If already open, the window is brought to the front.
 - **Reiniciar** — completely restarts the process (useful if shortcuts stop working).
 - **Salir** — closes the application.
@@ -203,6 +207,7 @@ The settings dialog is organized into four sections.
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Capturar Zona**             | Shortcut for area capture. Click *Grabar* and press the desired combination.                                                                                                                                                       |
 | **Capturar Pantalla**         | Shortcut for full-screen capture. Same recording method.                                                                                                                                                                           |
+| **Captura silenciosa**        | Shortcut for silent capture (runs the Auto action directly, without overlay). Same recording method.                                                                                                                               |
 | **Bloquear proporción**       | Modifier key to lock the selection to the proportion currently displayed on screen (default: `Ctrl`). Options: `---`, `Ctrl`, `Shift`, `Alt`.                                                                                      |
 | **Forzar preferidas**         | Modifier key to lock the preferred aspect ratio configured below (default: `Shift`). Options: `---`, `Ctrl`, `Shift`, `Alt`.                                                                                                       |
 | **Invertir preferidas**       | Modifier key to invert the locked aspect ratio (default: `Alt`). For example, if the preferred proportion is 9:16, pressing this modifier forces 16:9. Options: `---`, `Ctrl`, `Shift`, `Alt`.                                     |
@@ -235,6 +240,8 @@ The settings dialog is organized into four sections.
 | **Iniciar con Windows**     | Adds or removes the `CapturaKdgdkd` entry in the Windows registry so the application starts automatically on login.           |
 | **Formato de salida**       | `PNG` (lossless) or `JPG`. Affects both auto-save and the Save As dialog.                                                      |
 | **Calidad JPG**             | Compression quality for JPG output (1–100). Automatically disabled when the selected format is PNG.                            |
+| **Idioma**                  | Español or English. Changing the language restarts the application automatically to reload all strings.                         |
+| **Tema**                    | `Auto` (detects the Windows theme from the registry), `Light` or `Dark`. Affects the export panel, icons, and overlay elements. |
 
 Settings are persisted via `QSettings` under the key `kdgdkd/Captura` (location depends on OS: registry on Windows, `~/.config` on Linux, `~/Library/Preferences` on macOS).
 
@@ -245,3 +252,25 @@ Settings are persisted via `QSettings` under the key `kdgdkd/Captura` (location 
 The application captures the screen where the mouse cursor is located at the moment the capture is started (for both area capture and full-screen capture), using `QApplication.screenAt(QCursor.pos())`. If for some reason the screen cannot be determined, the primary screen is used.
 
 Captures correctly handle the `devicePixelRatio` (DPI scaling) of each screen.
+
+---
+
+## Delayed Capture
+
+Postpone the area capture by 3, 5 or 10 seconds. When selecting an option from the *Captura con retardo* submenu, a tray notification shows the wait time. Once the delay expires, the overlay opens normally.
+
+Useful when you need to open a context menu or position the mouse before the overlay takes control of the screen.
+
+---
+
+## Window Capture
+
+Select *Capturar ventana* from the tray menu to automatically detect the window under the cursor using the Windows API. The overlay opens with the window region pre-selected, ready for export.
+
+On non-Windows systems, this option falls back to a normal area capture.
+
+---
+
+## Monitor-Specific Capture
+
+The *Capturar monitor* submenu lists all connected monitors with their name and resolution. Choosing one captures that monitor's full screen and shows the export panel. Useful in multi-monitor setups when you want to capture a different monitor than the one under the cursor.
